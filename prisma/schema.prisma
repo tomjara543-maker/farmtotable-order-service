@@ -1,0 +1,68 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model CartItem {
+  buyerId   String   @map("buyer_id")
+  productId String   @map("product_id")
+  quantity  Float
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@id([buyerId, productId])
+  @@map("cart_items")
+}
+
+enum OrderStatus {
+  PENDING_INVENTORY
+  CONFIRMED
+  PAID
+  IN_DELIVERY
+  DELIVERED
+  REJECTED
+  CANCELLED
+}
+
+model Order {
+  id                String      @id @default(uuid())
+  buyerId           String      @map("buyer_id")
+  deliveryZone      String      @map("delivery_zone")
+  deliveryAddress   String      @map("delivery_address")
+  status            OrderStatus @default(PENDING_INVENTORY)
+  statusReason      String?     @map("status_reason")
+  requiresColdChain Boolean     @default(false) @map("requires_cold_chain")
+  total             Int
+  createdAt         DateTime    @default(now()) @map("created_at")
+  items             OrderItem[]
+
+  @@index([buyerId])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String @id @default(uuid())
+  orderId     String @map("order_id")
+  order       Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String @map("product_id")
+  producerId  String @map("producer_id")
+  productName String @map("product_name")
+  quantity    Float
+  unitPrice   Int    @map("unit_price")
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model ProcessedEvent {
+  eventId     String   @id @map("event_id")
+  eventType   String   @map("event_type")
+  processedAt DateTime @default(now()) @map("processed_at")
+
+  @@map("processed_events")
+}

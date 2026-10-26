@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: farmtotable-order-service
+    runtime: docker
+    region: virginia
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: SERVICE_NAME
+        value: order-service
+      - key: DATABASE_URL
+        sync: false
+      - key: RABBITMQ_URL
+        sync: false
+      - key: INTERNAL_TOKEN
+        sync: false
+      - key: CATALOG_SERVICE_URL
+        sync: false
