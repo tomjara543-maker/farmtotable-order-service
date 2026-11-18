@@ -4,8 +4,8 @@ import { requireUser, userOf } from "./auth";
 import { prisma } from "./db";
 import { publish } from "./events";
 import { OrderStatus } from "./generated/prisma/client";
-import { callService, HttpError, notFound, round2 } from "./http";
-import { include, toJson } from "./orders";
+import { callService, HttpError, notFound } from "./http";
+import { consolidateByZone, include, toJson } from "./orders";
 
 const CATALOG_URL = process.env.CATALOG_SERVICE_URL;
 
@@ -120,15 +120,7 @@ export function orderRoutes() {
 
   router.get("/consolidated", requireUser("ADMIN"), async (_req, res) => {
     const list = await prisma.order.findMany({ where: { status: { in: ["CONFIRMED", "PAID"] } }, include, orderBy: { createdAt: "asc" } });
-    const byZone: Record<string, { orders: number; totalKg: number; requiresColdChain: boolean; orderIds: string[] }> = {};
-    for (const o of list) {
-      const z = (byZone[o.deliveryZone] ??= { orders: 0, totalKg: 0, requiresColdChain: false, orderIds: [] });
-      z.orders++;
-      z.totalKg = round2(z.totalKg + o.items.reduce((s, i) => s + i.quantity, 0));
-      z.requiresColdChain ||= o.requiresColdChain;
-      z.orderIds.push(o.id);
-    }
-    res.json(byZone);
+    res.json(consolidateByZone(list));
   });
 
   async function visibleOrder(id: string, user: { id: string; role: string }) {
